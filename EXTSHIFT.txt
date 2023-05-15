@@ -1,0 +1,55 @@
+[t, x, ul] = EXTSHIFT(dyn, t, x0, tz, z, ulb, urb)
+fh = str2func(dyn);
+r = size(ulb, 2);
+u = []
+u_space=zeros(2^r, r);
+for i = 1 : 2^r
+    u_buf=zeros(r, 1);
+    for u_idx = 1 : r
+        u_buf(u_idx,:) = urb(u_idx) ∗ binary2vector(bitand(bitshift((i−1), −(u_idx−1)), (2−1)), 1);
+        u = u_buf(u_idx,:);
+        u(u==0) = ulb(u_idx);
+    end;
+    u_space(i,:) = u_buf’;
+end
+n = size(x0, 2);
+x = [];
+t = [];
+Aeq = ones(1, 2^r);
+beq = 1;
+lb = zeros(1, 2^r);
+ub = ones(1, 2^r);
+p0 = ones(1, 2^r)./(2^r);
+for i = 1:(size(tz, 1)−1)
+    xi = x0;
+    zi = z(i,:)’;
+    
+    F = zeros(2^r, N);
+    for j = 1:2^r
+        F(j,:) = fh(tz(i), xi, u_space(j,:))’;
+    end
+    f = @(p)optP(p, xi, zi, F);
+    p = fmincon(f, p0, [], [], Aeq, beq, lb, ub, [], options);
+    
+    rand_p = rand(1, 1);
+    sum_p = 0;
+    u_ext = [];
+    for j = 1:size(p, 2)
+        if (rand_p >= sum_p && rand_p < (sum_p + p(j)))
+            u_ext = u_space(j,:);
+            break;
+        end
+        sum_p = sum_p + p(j);
+    end
+    
+    [tval, x0] = ode15s(fh, [tz(i) tz(i+1)], x0, [tz(i) tz(i+1)], u_ext);
+    x = [x; x0];
+    x0 = x0(end,:)’;
+    t = [t; tval];
+    u = [u; u_ext];
+end;
+for ind = 2:size(t, 1)
+    if (abs(t(ind−1) − t(ind)) < 1e−9)
+        t(ind) = t(ind) + 1e −9;
+    end
+end
