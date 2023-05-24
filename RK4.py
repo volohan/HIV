@@ -39,12 +39,12 @@ def RK4(f, y0, x0, xn, h):
             k4[j] = h * f[j](x[i] + h, *temp3)
         for j in range(len(f)):
             y[i + 1][j] = y[i][j] + (1 / 6) * (
-                        k1[j] + 2 * k2[j] + 2 * k3[j] + k4[j])
+                    k1[j] + 2 * k2[j] + 2 * k3[j] + k4[j])
 
     return x, y
+
 
 '''
     for i in range(len(x)):
         print(f"{x[i]}: {[yi for yi in y[i]]}")
 '''
-
