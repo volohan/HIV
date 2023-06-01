@@ -1,5 +1,4 @@
 import pickle
-
 import numpy as np
 from scipy.integrate import solve_ivp
 from scipy.optimize import minimize, Bounds
@@ -54,12 +53,13 @@ def EXTSHIFT(dyn, t, x0, z, ulb, urb):
     ub = np.ones((1, 2 ** r))
     p0 = np.ones((1, 2 ** r)) / (2 ** r)
 
-    for i in range(len(index_list)-1):
+    for i in range(len(index_list) - 1):
         print(tz[index_list[i]])
         xi = x0
-        t1 = index_list[i]
-        t2 = index_list[i+1]
-        f = lambda p: optP(p, xi, [fi[index_list[i]] for fi in STI[1:]], t1, t2, u_space)
+        t1 = tz[index_list[i]]
+        t2 = tz[index_list[i + 1]]
+        f = lambda p: optP(p, xi, [fi[index_list[i]] for fi in STI[1:]], t1,
+                           t2, u_space)
         res = minimize(f, p0,
                        method='SLSQP',
                        constraints=[{'type': 'eq',
@@ -79,7 +79,7 @@ def EXTSHIFT(dyn, t, x0, z, ulb, urb):
                 break
             sum_p += p[j]
 
-        #tval, x0, info = odeint(fh, x0, [tz[i], tz[i + 1]], args=(u_ext,),
+        # tval, x0, info = odeint(fh, x0, [tz[i], tz[i + 1]], args=(u_ext,),
         #                        full_output=True)
         sol = solve_ivp(fun=lambda t, y: [fi(t, *y, *u_ext) for fi in fh],
                         t_span=(tz[index_list[i]], tz[index_list[i + 1]]),
@@ -98,5 +98,8 @@ def EXTSHIFT(dyn, t, x0, z, ulb, urb):
 
 
 t, x, u = EXTSHIFT(dyn, t, x0, z, ulb, urb)
+
+with open('EXTSHIFT.pickle', 'wb') as p:
+    pickle.dump([t, x, u], p)
 
 graphs.draw(t, x[0, :], x[1, :], x[2, :], x[3, :], x[4, :], x[5, :])
