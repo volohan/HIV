@@ -1,29 +1,39 @@
+import pickle
+
 import numpy as np
-from scipy.integrate import odeint, solve_ivp
+from scipy.integrate import solve_ivp
 from scipy.optimize import minimize, Bounds
+import HIV
+import graphs
 
 dyn = "[T1(t), T2(t), I1(t), I2(t), V(t), E(t)]"
+fh = [HIV.T1, HIV.T2, HIV.I1, HIV.I2, HIV.V, HIV.E]
 t = [0]
-x0 = np.array([1, 1, 1, 1, 1, 1, 1])
-tz = np.zeros((100, 1))
+x0 = np.array([163573, 5, 11945, 46, 63919, 24])
 z = np.array([[1, 1, 1, 1, 1, 1],
               [1, 1, 1, 1, 1, 1]])
-ulb = np.array([111, 111])
-urb = np.array([111, 111])
+ulb = np.array([0, 0])
+urb = np.array([0.7, 0.3])
 
 
-def optP(p, xi, zi, F):
+def optP(p, xi, STI, t1, t2, u_space):
     fp = 0
-    li = xi - zi
-    for i in range(p):
-        fp += p[i] * F[i]
+    li = xi - STI
+    for i in range(len(p)):
+        sol = solve_ivp(
+            fun=lambda t, y: [fi(t, *y, *u_space[i]) for fi in fh],
+            t_span=(t1, t2), y0=xi, method='BDF')
+        fp += p[i] * sol.y[:, -1]
+    a = np.dot(li, fp)
     return np.dot(li, fp)
 
 
-def EXTSHIFT(dyn, t, x0, tz, z, ulb, urb):
-    # fh = eval('lambda t,x,u : ' + dyn)  # создаем функцию из строки
-    def fh(t, x, u):
-        return np.array([1111, 1111, 11111, 1111])
+def EXTSHIFT(dyn, t, x0, z, ulb, urb):
+    STI = []
+    with open('STI.pickle', 'rb') as f:
+        STI = pickle.load(f)
+    index_list = [i for i in range(len(STI[0])) if STI[0][i] % 5 == 0]
+    tz = STI[0]
 
     r = ulb.shape[0]
     u = []
@@ -32,16 +42,11 @@ def EXTSHIFT(dyn, t, x0, tz, z, ulb, urb):
     for i in range(2 ** r):
         u_buf = np.zeros((r, 1))
         for u_idx in range(r):
-            print(np.dot(urb[u_idx], np.array((i >> u_idx) & 1)))
             u_buf[u_idx, :] = urb[u_idx] * np.array((i >> u_idx) & 1)
-            u = u_buf[u_idx, :]
-            u[u == 0] = ulb[u_idx]
         u_space[i, :] = np.transpose(u_buf)
 
-    N = tz.shape[0]
-    n = x0.shape[0]
-    x = np.zeros(n)
-    t = np.zeros((N, 1))
+    x = np.transpose(np.array((x0, x0)))
+    t = [0]
 
     Aeq = np.ones((1, 2 ** r))
     beq = 1
@@ -49,17 +54,13 @@ def EXTSHIFT(dyn, t, x0, tz, z, ulb, urb):
     ub = np.ones((1, 2 ** r))
     p0 = np.ones((1, 2 ** r)) / (2 ** r)
 
-    for i in range(N - 1):
+    for i in range(len(index_list)-1):
+        print(tz[index_list[i]])
         xi = x0
-        zi = np.transpose(z[i, :])
-
-        F = np.zeros((2 ** r, 2 + r))
-        for j in range(2 ** r):
-            F[j, :] = np.transpose(fh(tz[i], xi, u_space[j, :]))
-        f = lambda p: optP(p, xi, zi, F)
-        # res = minimize(optP, p0, args=(xi, zi, F))
-        res = minimize(optP, p0,
-                       args=(xi, zi, F),
+        t1 = index_list[i]
+        t2 = index_list[i+1]
+        f = lambda p: optP(p, xi, [fi[index_list[i]] for fi in STI[1:]], t1, t2, u_space)
+        res = minimize(f, p0,
                        method='SLSQP',
                        constraints=[{'type': 'eq',
                                      'fun': lambda p: np.dot(Aeq, p) - beq}],
@@ -80,17 +81,22 @@ def EXTSHIFT(dyn, t, x0, tz, z, ulb, urb):
 
         #tval, x0, info = odeint(fh, x0, [tz[i], tz[i + 1]], args=(u_ext,),
         #                        full_output=True)
-        sol = solve_ivp(fun=lambda t, x: fh(t, x, u_ext),
-                        t_span=(tz[i], tz[i + 1]), y0=x0, method='BDF')
-        x = np.append(x, x0, axis=0)
-        x0 = np.transpose(np.array([x0[-1, :]]))
-        t = np.append(t, tval, axis=0)
-        u = np.append(u, np.array([u_ext]), axis=0)
+        sol = solve_ivp(fun=lambda t, y: [fi(t, *y, *u_ext) for fi in fh],
+                        t_span=(tz[index_list[i]], tz[index_list[i + 1]]),
+                        y0=x0, method='BDF')
+        x = np.append(x, sol.y[:, 1:], axis=1)
+        x0 = sol.y[:, -1]
+        t.extend(sol.t[1:])
+        u.append([u_ext])
 
-    for ind in range(1, t.shape[0]):
+    '''
+    for ind in range(1, len(t)):
         if abs(t[ind - 1] - t[ind]) < 1e-9:
             t[ind] = t[ind] + 1e-9
-    return t, x, u
+    '''
+    return t, x[:, 1:], u
 
 
-EXTSHIFT(dyn, t, x0, tz, z, ulb, urb)
+t, x, u = EXTSHIFT(dyn, t, x0, z, ulb, urb)
+
+graphs.draw(t, x[0, :], x[1, :], x[2, :], x[3, :], x[4, :], x[5, :])

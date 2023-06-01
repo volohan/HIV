@@ -54,7 +54,7 @@ def STI():
     uu = []
     min_J = 0
     for t in range(0, tf, l):
-        print([t, t + l])
+        print((t, t + l))
         res = []
         temp = [[f1[-1]], [f2[-1]], [f3[-1]], [f4[-1]], [f5[-1]], [f6[-1]]]
         _recursive(t, [t], np.column_stack([temp, temp]), [], u_space, res)
@@ -70,7 +70,10 @@ def STI():
         f6.extend(res[t][1][5, 1:])
         uu.extend(res[t][2])
 
-    print(min_J)
+    with open('STI.pickle', 'wb') as p:
+        pickle.dump([tt, f1, f2, f3, f4, f5, f6], p)
+
+    print(min_J[0])
     graphs.draw(tt, f1, f2, f3, f4, f5, f6)
 
 
