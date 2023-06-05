@@ -1,5 +1,5 @@
+import pickle
 from RK4 import RK4
-import matplotlib.pyplot as plt
 
 start = [163573, 5, 11945, 46, 63919, 24]
 t0, tn, h = (0, 1000, 0.01)
@@ -24,6 +24,7 @@ d_E = 0.25
 K_b = 100
 K_d = 500
 f = 0.35
+
 '''
 # функция правой части дифференциального уравнения (y' = f(x, y))
 def f1(t,u_1, u_2, T_1, T_2, I_1, I_2, V, E):
@@ -70,45 +71,17 @@ def E(t, T_1, T_2, I_1, I_2, V, E, u_1=0.7, u_2=0.3):
 
 
 if __name__ == '__main__':
+    # Решение уравнения методом Рунге-Кутты и получение значений функций
     x, y = RK4([T1, T2, I1, I2, V, E], start, t0, tn, h)
 
-    # создаем объект фигуры и определяем размер
-    fig = plt.figure(figsize=(10, 8))
+    # Создание списка списков для значений функций
+    f = [[] for _ in range(len(y[0]))]
 
-    # добавляем первый подграфик
-    ax1 = fig.add_subplot(3, 2, 1)  # 2 строки, 3 столбца, 1-ый подграфик
-    ax1.plot(x, [yi[0] for yi in y])
-    ax1.set_title('T1')
-    ax1.set_yscale('log')
+    # Добавление значений функций в соответствующие списки
+    for yi in y:
+        for i, fi in enumerate(yi):
+            f[i].append(fi)
 
-    # добавляем второй подграфик
-    ax2 = fig.add_subplot(3, 2, 2)  # 2 строки, 3 столбца, 2-ой подграфик
-    ax2.plot(x, [yi[1] for yi in y])
-    ax2.set_title('T2')
-    ax2.set_yscale('log')
-
-    # добавляем третий подграфик
-    ax3 = fig.add_subplot(3, 2, 3)  # 2 строки, 3 столбца, 3-ий подграфик
-    ax3.plot(x, [yi[2] for yi in y])
-    ax3.set_title('I1')
-    ax3.set_yscale('log')
-
-    # добавляем четвертый подграфик
-    ax4 = fig.add_subplot(3, 2, 4)  # 2 строки, 3 столбца, 4-ый подграфик
-    ax4.plot(x, [yi[3] for yi in y])
-    ax4.set_title('I2')
-    ax4.set_yscale('log')
-
-    # добавляем пятый подграфик
-    ax5 = fig.add_subplot(3, 2, 5)  # 2 строки, 3 столбца, 5-ый подграфик
-    ax5.plot(x, [yi[4] for yi in y])
-    ax5.set_title('V')
-    ax5.set_yscale('log')
-
-    # добавляем шестой подграфик
-    ax6 = fig.add_subplot(3, 2, 6)  # 2 строки, 3 столбца, 6-ой подграфик
-    ax6.plot(x, [yi[5] for yi in y])
-    ax6.set_title('E')
-    ax6.set_yscale('log')
-
-    plt.show()
+    # Сохранение графиков фазовых переменных
+    with open('HIV.pickle', 'wb') as p:
+        pickle.dump([x, *f], p)

@@ -2,7 +2,6 @@ from scipy.integrate import solve_ivp, quad
 import pickle
 import numpy as np
 import HIV
-import graphs
 
 d = {(0.0, 0.0): '0', (0.0, 0.3): '1', (0.7, 0.0): '2', (0.7, 0.3): '3'}
 x0 = [163573, 5, 11945, 46, 63919, 24]
@@ -72,9 +71,6 @@ def STI():
 
     with open('STI.pickle', 'wb') as p:
         pickle.dump([tt, f1, f2, f3, f4, f5, f6], p)
-
-    print(min_J[0])
-    graphs.draw(tt, f1, f2, f3, f4, f5, f6)
 
 
 STI()
