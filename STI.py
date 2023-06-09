@@ -1,4 +1,4 @@
-from scipy.integrate import solve_ivp, quad
+from scipy.integrate import solve_ivp
 import pickle
 import numpy as np
 import HIV
@@ -13,38 +13,36 @@ R1 = 50000
 R2 = 50000
 S = 1
 P = 100000
+tf = 1000
 s = 5
 l = 20
-tf = 1000
 
 
-def _Jcost(t, Vt, Et, u):
-    J = 0
+def Jcost(t, Vt, Et, u):
+    cost = Q * ((Vt - xf[-2]) ** 2) + S * ((Et - xf[-1]) ** 2) + P * (tf ** 2)
     for t_s in range(int(t[0]), int(t[-1]), s):
-        t_u = int((t_s % l) / s)
-        J += s * (R1 * u[t_u][0] ** 2 + R2 * u[t_u][1] ** 2)
-    J += Q * ((Vt - xf[-2]) ** 2) + S * ((Et - xf[-1]) ** 2) + P * (tf ** 2)
-    return 0.5 * J, u
+        u_i = u[int((t_s % l) / s)]
+        cost += s * (R1 * (u_i[0] ** 2) + R2 * (u_i[1] ** 2))
+    return 0.5 * cost, u
 
 
-def _recursive(tz, t, x, u, u_space, res):
+def _recursive(ti, tt, x, u, u_space, res):
     if len(u) == l / s:
-        res.append([t, x[:, 1:], u])
+        res.append([tt, x[:, 1:], u])
     else:
         for i in range(len(u_space)):
             sol = solve_ivp(
                 fun=lambda t, y: [fi(t, *y, *u_space[i]) for fi in fh],
-                t_span=(tz, tz + s), y0=x[:, -1], method='Radau')
-            _recursive(tz + s, [*t, *sol.t[1:]],
+                t_span=(ti, ti + s), y0=x[:, -1], method='Radau')
+            _recursive(ti + s, [*tt, *sol.t[1:]],
                        np.column_stack((x, sol.y[:, 1:])), [*u, u_space[i]],
                        u_space, res)
     return
 
 
 def STI():
-    d = {u_min: '0', (u_min[0], u_max[1]): '1', (u_max[0], u_min[1]): '2',
-         u_max: '3'}
-    u_space = [[i[0], i[1]] for i in d]
+    u_states = {u_min: '0', (u_min[0], u_max[1]): '1', (u_max[0], u_min[1]): '2', u_max: '3'}
+    u_space = [[i[0], i[1]] for i in u_states]
 
     tt = [0]
     f1 = [x0[0]]
@@ -57,11 +55,11 @@ def STI():
     for ti in range(0, tf, l):
         print((ti, ti + l))
         res = []
-        temp = [[f1[-1]], [f2[-1]], [f3[-1]], [f4[-1]], [f5[-1]], [f6[-1]]]
-        _recursive(ti, [ti], np.column_stack([temp, temp]), [], u_space, res)
-        min_J = min(
-            [_Jcost(r[0], r[1][4, -1], r[1][5, -1], r[2]) for r in res])
-        t = int(''.join([d[(i[0], i[1])] for i in min_J[1][-4:]]), 4)
+        xi = [[f1[-1]], [f2[-1]], [f3[-1]], [f4[-1]], [f5[-1]], [f6[-1]]]
+        _recursive(ti, [ti], np.column_stack([xi, xi]), [], u_space, res)
+        min_J, u_J = min(
+            [Jcost(r[0], r[1][4, -1], r[1][5, -1], r[2]) for r in res])
+        t = int(''.join([u_states[(i[0], i[1])] for i in u_J[-4:]]), 4)
         tt.extend(res[t][0][1:])
         f1.extend(res[t][1][0, 1:])
         f2.extend(res[t][1][1, 1:])
