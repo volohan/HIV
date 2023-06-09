@@ -41,7 +41,8 @@ def _recursive(ti, tt, x, u, u_space, res):
 
 
 def STI():
-    u_states = {u_min: '0', (u_min[0], u_max[1]): '1', (u_max[0], u_min[1]): '2', u_max: '3'}
+    u_states = {u_min: '0', (u_min[0], u_max[1]): '1',
+                (u_max[0], u_min[1]): '2', u_max: '3'}
     u_space = [[i[0], i[1]] for i in u_states]
 
     tt = [0]
