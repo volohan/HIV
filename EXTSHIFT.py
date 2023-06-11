@@ -1,41 +1,25 @@
 import pickle
 import numpy as np
+import HIV
+from scipy.optimize import LinearConstraint, differential_evolution
 from scipy.integrate import solve_ivp
 
-import HIV
-import graphs
 
-dyn = "[T1(t), T2(t), I1(t), I2(t), V(t), E(t)]"
-fh = [HIV.T1, HIV.T2, HIV.I1, HIV.I2, HIV.V, HIV.E]
-t = [0]
-x0 = np.array([163573, 5, 11945, 46, 63919, 24])
-z = np.array([[1, 1, 1, 1, 1, 1],
-              [1, 1, 1, 1, 1, 1]])
-ulb = np.array([0, 0])
-urb = np.array([0.7, 0.3])
-
-
-def optP(p, xi, STI, t1, t2, u_space):
-    fp = 0
-    li = xi - STI
+def opt_p(p, xi, sti, t1, fh, u_space):
+    fp = [0, 0, 0, 0, 0, 0]
+    li = xi - sti
     for i in range(len(p)):
-        sol = solve_ivp(
-            fun=lambda t, y: [fi(t, *y, *u_space[i]) for fi in fh],
-            t_span=(t1, t2), y0=xi, method='BDF')
-        fp += p[i] * sol.y[:, -1]
-    a = np.dot(li, fp)
+        fp = [i + j for i, j in
+              zip(fp, [p[i] * fi(t1, *xi, *u_space[i]) for fi in fh])]
     return np.dot(li, fp)
 
 
-def EXTSHIFT(dyn, t, x0, z, ulb, urb):
-    STI = []
+def EXTSHIFT(fh, x0, ulb, urb):
     with open('STI.pickle', 'rb') as f:
-        STI = pickle.load(f)
-    index_list = [i for i in range(len(STI[0])) if STI[0][i] % 5 == 0]
-    tz = STI[0]
-
+        sti = pickle.load(f)
+    index_list = [i for i in range(len(sti[0])) if sti[0][i] % 5 == 0]
+    tz = sti[0]
     r = ulb.shape[0]
-    u = []
     u_space = np.zeros((2 ** r, r))
 
     for i in range(2 ** r):
@@ -46,22 +30,33 @@ def EXTSHIFT(dyn, t, x0, z, ulb, urb):
 
     x = np.transpose(np.array((x0, x0)))
     t = [0]
-
-    Aeq = np.ones((1, 2 ** r))
-    beq = 1
-    lb = np.zeros((1, 2 ** r))
-    ub = np.ones((1, 2 ** r))
-    p0 = np.ones((1, 2 ** r)) / (2 ** r)
-
+    u = []
+    p0 = np.array(np.ones((1, 2 ** r)) / (2 ** r))
+    xi = x0
     for i in range(len(index_list) - 1):
-        # print(tz[index_list[i]])
-        xi = x0
+        print((tz[index_list[i]], tz[index_list[i + 1]]))
         t1 = tz[index_list[i]]
-        t2 = tz[index_list[i + 1]]
-        f = lambda p: optP(p, xi, [fi[index_list[i]] for fi in STI[1:]], t1,
-                           t2, u_space)
-        m = np.inf
-        z = []
+
+        # Настройки метода оптимизации
+        # rand1exp
+        # currenttobest1exp
+        # randtobest1bin
+        # currenttobest1bin
+        # best2bin
+        strategy = 'currenttobest1exp'  # Стратегия выбора родителей
+        bounds = [(0, 1)] * 4  # Нижние и верхние границы переменных
+        constraints = LinearConstraint(np.ones((1, 2 ** r)), 1, 1)
+
+        # Глобальная оптимизация с ограничениями
+        res = differential_evolution(opt_p, bounds, strategy=strategy,
+                                     args=(xi, [fi[index_list[i]] for fi in
+                                                sti[1:]], t1, fh, u_space),
+                                     constraints=constraints,
+                                     x0=p0)
+
+        '''
+        best_x = np.inf
+        p = []
         zx = [[1, 0, 0, 0],
               [0, 1, 0, 0],
               [0, 0, 1, 0],
@@ -79,13 +74,15 @@ def EXTSHIFT(dyn, t, x0, z, ulb, urb):
               [0.01, 0.97, 0.01, 0.01],
               [0.01, 0.01, 0.97, 0.01],
               [0.01, 0.01, 0.01, 0.97]]
-        for p in zx:
-            r = f(p)
-            if r < m:
-                m = r
-                z = p
+        for p0 in zx:
+            res_x = opt_p(p0, xi, [fi[index_list[i]] for fi in
+                                   sti[1:]], t1, fh, u_space)
+            if res_x < best_x:
+                best_x = res_x
+                p = p0
+        '''
 
-        p = z
+        p = res.x
         print(p)
         rand_p = np.random.rand(1, 1)
         sum_p = 0
@@ -96,27 +93,24 @@ def EXTSHIFT(dyn, t, x0, z, ulb, urb):
                 break
             sum_p += p[j]
 
-        # tval, x0, info = odeint(fh, x0, [tz[i], tz[i + 1]], args=(u_ext,),
-        #                        full_output=True)
         sol = solve_ivp(fun=lambda t, y: [fi(t, *y, *u_ext) for fi in fh],
                         t_span=(tz[index_list[i]], tz[index_list[i + 1]]),
-                        y0=x0, method='BDF')
+                        y0=x0, method='Radau')
         x = np.append(x, sol.y[:, 1:], axis=1)
         x0 = sol.y[:, -1]
         t.extend(sol.t[1:])
         u.append([u_ext])
 
-    '''
-    for ind in range(1, len(t)):
-        if abs(t[ind - 1] - t[ind]) < 1e-9:
-            t[ind] = t[ind] + 1e-9
-    '''
     return t, x[:, 1:], u
 
 
-t, x, u = EXTSHIFT(dyn, t, x0, z, ulb, urb)
+if __name__ == '__main__':
+    fh = [HIV.T1, HIV.T2, HIV.I1, HIV.I2, HIV.V, HIV.E]
+    x0 = np.array([163573, 5, 11945, 46, 63919, 24])
+    ulb = np.array([0, 0])
+    urb = np.array([0.7, 0.3])
 
-with open('EXTSHIFT.pickle', 'wb') as p:
-    pickle.dump([t, x, u], p)
+    t, x, u = EXTSHIFT(fh, x0, ulb, urb)
 
-graphs.draw(t, x[0, :], x[1, :], x[2, :], x[3, :], x[4, :], x[5, :])
+    with open('EXTSHIFT.pickle', 'wb') as p:
+        pickle.dump([t, *x], p)
