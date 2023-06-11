@@ -14,7 +14,7 @@ def opt_p(p, xi, sti, t1, fh, u_space):
     return np.dot(li, fp)
 
 
-def EXTSHIFT(fh, x0, ulb, urb):
+def EXTSHIFT(fh, x0, ulb, urb, signal=None):
     with open('STI.pickle', 'rb') as f:
         sti = pickle.load(f)
     index_list = [i for i in range(len(sti[0])) if sti[0][i] % 5 == 0]
@@ -34,7 +34,12 @@ def EXTSHIFT(fh, x0, ulb, urb):
     p0 = np.array(np.ones((1, 2 ** r)) / (2 ** r))
     xi = x0
     for i in range(len(index_list) - 1):
-        print((tz[index_list[i]], tz[index_list[i + 1]]))
+        if signal:
+            signal.emit(
+                f"EXTSHIFT: {(tz[index_list[i]], tz[index_list[i + 1]])}",
+                tz[index_list[i]])
+        else:
+            print((tz[index_list[i]], tz[index_list[i + 1]]))
         t1 = tz[index_list[i]]
 
         # Настройки метода оптимизации
@@ -83,7 +88,8 @@ def EXTSHIFT(fh, x0, ulb, urb):
         '''
 
         p = res.x
-        print(p)
+        if not signal:
+            print(p)
         rand_p = np.random.rand(1, 1)
         sum_p = 0
         u_ext = []
@@ -104,13 +110,18 @@ def EXTSHIFT(fh, x0, ulb, urb):
     return t, x[:, 1:], u
 
 
-if __name__ == '__main__':
+def compute(u1_max, u2_max, signal=None):
     fh = [HIV.T1, HIV.T2, HIV.I1, HIV.I2, HIV.V, HIV.E]
     x0 = np.array([163573, 5, 11945, 46, 63919, 24])
     ulb = np.array([0, 0])
-    urb = np.array([0.7, 0.3])
+    # urb = np.array([0.7, 0.3])
+    urb = np.array([u1_max, u2_max])
 
-    t, x, u = EXTSHIFT(fh, x0, ulb, urb)
+    t, x, u = EXTSHIFT(fh, x0, ulb, urb, signal)
 
     with open('EXTSHIFT.pickle', 'wb') as p:
         pickle.dump([t, *x], p)
+
+
+if __name__ == '__main__':
+    compute(0.7, 0.3)

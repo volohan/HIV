@@ -3,44 +3,46 @@ import pickle
 import numpy as np
 import HIV
 
-u_min = (0, 0)
-u_max = (0.7, 0.3)
-x0 = [163573, 5, 11945, 46, 63919, 24]
-xf = [967839, 621, 76, 6, 415, 353108]
-fh = [HIV.T1, HIV.T2, HIV.I1, HIV.I2, HIV.V, HIV.E]
-Q = 0.0001
-R1 = 50000
-R2 = 50000
-S = 1
-P = 100000
-tf = 1000
-s = 5
-l = 20
 
+def STI(u1_max, u2_max, tf, s, l, signal=None):
+    u_min = (0, 0)
+    # u_max = (0.7, 0.3)
+    u_max = (u1_max, u2_max)
+    x0 = [163573, 5, 11945, 46, 63919, 24]
+    xf = [967839, 621, 76, 6, 415, 353108]
+    fh = [HIV.T1, HIV.T2, HIV.I1, HIV.I2, HIV.V, HIV.E]
+    Q = 0.0001
+    R1 = 50000
+    R2 = 50000
+    S = 1
+    P = 100000
 
-def Jcost(t, Vt, Et, u):
-    cost = Q * ((Vt - xf[-2]) ** 2) + S * ((Et - xf[-1]) ** 2) + P * (tf ** 2)
-    for t_s in range(int(t[0]), int(t[-1]), s):
-        u_i = u[int((t_s % l) / s)]
-        cost += s * (R1 * (u_i[0] ** 2) + R2 * (u_i[1] ** 2))
-    return 0.5 * cost, u
+    # tf = 1000
+    # s = 5
+    # l = 20
 
+    def Jcost(t, Vt, Et, u):
+        cost = Q * ((Vt - xf[-2]) ** 2) + S * ((Et - xf[-1]) ** 2) + P * (
+                tf ** 2)
+        for t_s in range(int(t[0]), int(t[-1]), s):
+            u_i = u[int((t_s % l) / s)]
+            cost += s * (R1 * (u_i[0] ** 2) + R2 * (u_i[1] ** 2))
+        return 0.5 * cost, u
 
-def _recursive(ti, tt, x, u, u_space, res):
-    if len(u) == l / s:
-        res.append([tt, x[:, 1:], u])
-    else:
-        for i in range(len(u_space)):
-            sol = solve_ivp(
-                fun=lambda t, y: [fi(t, *y, *u_space[i]) for fi in fh],
-                t_span=(ti, ti + s), y0=x[:, -1], method='Radau')
-            _recursive(ti + s, [*tt, *sol.t[1:]],
-                       np.column_stack((x, sol.y[:, 1:])), [*u, u_space[i]],
-                       u_space, res)
-    return
+    def _recursive(ti, tt, x, u, u_space, res):
+        if len(u) == l / s:
+            res.append([tt, x[:, 1:], u])
+        else:
+            for i in range(len(u_space)):
+                sol = solve_ivp(
+                    fun=lambda t, y: [fi(t, *y, *u_space[i]) for fi in fh],
+                    t_span=(ti, ti + s), y0=x[:, -1], method='Radau')
+                _recursive(ti + s, [*tt, *sol.t[1:]],
+                           np.column_stack((x, sol.y[:, 1:])),
+                           [*u, u_space[i]],
+                           u_space, res)
+        return
 
-
-def STI():
     u_states = {u_min: '0', (u_min[0], u_max[1]): '1',
                 (u_max[0], u_min[1]): '2', u_max: '3'}
     u_space = [[i[0], i[1]] for i in u_states]
@@ -54,7 +56,10 @@ def STI():
     f6 = [x0[5]]
     uu = []
     for ti in range(0, tf, l):
-        print((ti, ti + l))
+        if signal:
+            signal.emit(f"STI: {(ti, ti + l)}", ti)
+        else:
+            print((ti, ti + l))
         res = []
         xi = [[f1[-1]], [f2[-1]], [f3[-1]], [f4[-1]], [f5[-1]], [f6[-1]]]
         _recursive(ti, [ti], np.column_stack([xi, xi]), [], u_space, res)
@@ -74,4 +79,5 @@ def STI():
         pickle.dump([tt, f1, f2, f3, f4, f5, f6], p)
 
 
-STI()
+if __name__ == '__main__':
+    STI(0.7, 0.3, 1000, 5, 20)

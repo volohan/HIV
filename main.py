@@ -8,15 +8,15 @@ graphs = Graphs()
 
 # Добавление графика HIV, если True
 if added_HIV:
-    graphs.add_graphs("HIV", "green", "-")
+    graphs.add_graphs("HIV", "green", "--")
 
 # Добавление графика STI, если True
 if added_STI:
-    graphs.add_graphs("STI", "red", ".")
+    graphs.add_graphs("STI", "red", "dotted")
 
 # Добавление графика EXTSHIFT, если True
 if added_EXTSHIFT:
-    graphs.add_graphs("EXTSHIFT", "blue", "--")
+    graphs.add_graphs("EXTSHIFT", "blue", "-")
 
 # отображение графиков
 graphs.show()

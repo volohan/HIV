@@ -26,3 +26,29 @@ class Graphs:
 
     def show(self):
         plt.show()
+
+
+def show_plot(added_HIV, added_STI, added_EXTSHIFT, color1, style1, color2,
+              style2, color3, style3):
+    '''
+    added_HIV = True
+    added_STI = False
+    added_EXTSHIFT = False
+    '''
+
+    graphs = Graphs()
+
+    # Добавление графика HIV, если True
+    if added_HIV:
+        graphs.add_graphs("HIV", color1, style1)
+
+    # Добавление графика STI, если True
+    if added_STI:
+        graphs.add_graphs("STI", color2, style2)
+
+    # Добавление графика EXTSHIFT, если True
+    if added_EXTSHIFT:
+        graphs.add_graphs("EXTSHIFT", color3, style3)
+
+    # отображение графиков
+    graphs.show()

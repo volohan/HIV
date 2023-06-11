@@ -1,9 +1,6 @@
 import pickle
 from RK4 import RK4
 
-start = [163573, 5, 11945, 46, 63919, 24]
-t0, tn, h = (0, 1000, 0.01)
-
 lambda_1 = 10000
 lambda_2 = 31.98
 d_1 = 0.01
@@ -70,9 +67,12 @@ def E(t, T_1, T_2, I_1, I_2, V, E, u_1=0.7, u_2=0.3):
             d_E * (I_1 + I_2)) / ((I_1 + I_2) + K_d) * E - delta_E * E
 
 
-if __name__ == '__main__':
+def compute(u1, u2, tn):
+    start = [163573, 5, 11945, 46, 63919, 24]
+    t0, h = (0, 0.01)
+
     # Решение уравнения методом Рунге-Кутты и получение значений функций
-    x, y = RK4([T1, T2, I1, I2, V, E], start, t0, tn, h)
+    x, y = RK4([T1, T2, I1, I2, V, E], start, t0, [u1, u2], tn, h)
 
     # Создание списка списков для значений функций
     f = [[] for _ in range(len(y[0]))]
@@ -85,3 +85,7 @@ if __name__ == '__main__':
     # Сохранение графиков фазовых переменных
     with open('HIV.pickle', 'wb') as p:
         pickle.dump([x, *f], p)
+
+
+if __name__ == '__main__':
+    compute(0.7, 0.3, 1000)
