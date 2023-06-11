@@ -37,13 +37,13 @@ class ComputeThread(QThread):
             self.progress_changed.emit("STI: metod compute start", 0)
             self.sleep(2)
             STI.STI(u1_max, u2_max, tf, s, l, self.progress_changed)
-            self.progress_changed.emit("STI: model compute end", tf)
+            self.progress_changed.emit("STI: metod compute end", tf)
             self.sleep(2)
         if self.gui.extshift_checkbox.isChecked():
             self.progress_changed.emit("EXTSHIFT: metod compute start", 0)
             self.sleep(2)
             EXTSHIFT.compute(u1_max, u2_max, self.progress_changed)
-            self.progress_changed.emit("EXTSHIFT: model compute end", tf)
+            self.progress_changed.emit("EXTSHIFT: metod compute end", tf)
             self.sleep(2)
 
         self.progress_changed.emit("FINISHED!", tf)

@@ -48,7 +48,7 @@ def EXTSHIFT(fh, x0, ulb, urb, signal=None):
         # randtobest1bin
         # currenttobest1bin
         # best2bin
-        strategy = 'currenttobest1exp'  # Стратегия выбора родителей
+        strategy = 'rand1exp'  # Стратегия выбора родителей
         bounds = [(0, 1)] * 4  # Нижние и верхние границы переменных
         constraints = LinearConstraint(np.ones((1, 2 ** r)), 1, 1)
 
