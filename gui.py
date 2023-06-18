@@ -281,6 +281,8 @@ class MainWindow(QMainWindow):
 
     # Функция, которая вызывается при нажатии на кнопку "Отобразить графики"
     def plot(self):
+        self.show_plot()
+        '''
         if not self.progressbar:
             self.progresslabel = QLabel()
             self.progressbar = QProgressBar()
@@ -296,6 +298,7 @@ class MainWindow(QMainWindow):
         self.thread.progress_changed.connect(self.on_progress_changed)
         self.thread.finished.connect(self.show_plot)
         self.thread.start()
+        '''
 
     def show_plot(self):
         self.thread = None

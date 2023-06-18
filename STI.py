@@ -75,6 +75,11 @@ def STI(u1_max, u2_max, tf, s, l, signal=None):
         f6.extend(res[t][1][5, 1:])
         uu.extend(res[t][2])
 
+    u1 = [u[0] for u in uu]
+    u2 = [u[1] for u in uu]
+    with open('uu.pickle', 'wb') as p:
+        pickle.dump([tt, u1, u2], p)
+
     with open('STI.pickle', 'wb') as p:
         pickle.dump([tt, f1, f2, f3, f4, f5, f6], p)
 

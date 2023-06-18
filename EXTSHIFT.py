@@ -32,8 +32,8 @@ def EXTSHIFT(fh, x0, ulb, urb, signal=None):
     t = [0]
     u = []
     p0 = np.array(np.ones((1, 2 ** r)) / (2 ** r))
-    xi = x0
     for i in range(len(index_list) - 1):
+        xi = x0
         if signal:
             signal.emit(
                 f"EXTSHIFT: {(tz[index_list[i]], tz[index_list[i + 1]])}",
@@ -48,7 +48,7 @@ def EXTSHIFT(fh, x0, ulb, urb, signal=None):
         # randtobest1bin
         # currenttobest1bin
         # best2bin
-        strategy = 'rand1exp'  # Стратегия выбора родителей
+        strategy = 'currenttobest1bin'  # Стратегия выбора родителей
         bounds = [(0, 1)] * 4  # Нижние и верхние границы переменных
         constraints = LinearConstraint(np.ones((1, 2 ** r)), 1, 1)
 
@@ -118,6 +118,11 @@ def compute(u1_max, u2_max, signal=None):
     urb = np.array([u1_max, u2_max])
 
     t, x, u = EXTSHIFT(fh, x0, ulb, urb, signal)
+
+    print(u)
+
+    with open('uu.pickle', 'wb') as p:
+        pickle.dump(u, p)
 
     with open('EXTSHIFT.pickle', 'wb') as p:
         pickle.dump([t, *x], p)
