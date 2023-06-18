@@ -1,7 +1,6 @@
 import pickle
 import re
-import time
-
+from copy import copy
 import EXTSHIFT
 import HIV
 import graphs
@@ -9,7 +8,7 @@ import STI
 from PyQt5.QtWidgets import QMainWindow, QApplication, QWidget, QLabel, \
     QLineEdit, QPushButton, QVBoxLayout, QHBoxLayout, QSpacerItem, \
     QSizePolicy, QComboBox, QTabWidget, QGroupBox, QCheckBox, QProgressBar
-from PyQt5.QtCore import QRegExp, pyqtSignal, QThread, pyqtSlot
+from PyQt5.QtCore import QRegExp, pyqtSignal, QThread
 from PyQt5.QtGui import QRegExpValidator
 
 
@@ -28,18 +27,18 @@ class ComputeThread(QThread):
         l = int(self.gui.l_edit.text())
         s = int(self.gui.s_edit.text())
 
-        if self.gui.hiv_checkbox.isChecked():
+        if self.gui.is_requires_compute:
             self.progress_changed.emit("HIV: model compute start", 0)
             HIV.compute(u1_max, u2_max, tf)
             self.progress_changed.emit("HIV: model compute end", tf)
             self.sleep(2)
-        if self.gui.sti_checkbox.isChecked():
+        if self.gui.is_requires_compute:
             self.progress_changed.emit("STI: metod compute start", 0)
             self.sleep(2)
             STI.STI(u1_max, u2_max, tf, s, l, self.progress_changed)
             self.progress_changed.emit("STI: metod compute end", tf)
             self.sleep(2)
-        if self.gui.extshift_checkbox.isChecked():
+        if self.gui.is_requires_compute:
             self.progress_changed.emit("EXTSHIFT: metod compute start", 0)
             self.sleep(2)
             EXTSHIFT.compute(u1_max, u2_max, self.progress_changed)
@@ -53,7 +52,9 @@ class MainWindow(QMainWindow):
 
     def __init__(self, setting):
         super().__init__()
-        self.setting = setting
+        self.global_setting = setting
+        self.current_setting = copy(setting)
+        self.is_requires_compute = False or setting["first_time"]
         self.initUI()
 
     # Функция, которая создает UI
@@ -89,40 +90,46 @@ class MainWindow(QMainWindow):
         styles = ['solid', 'dashed', 'dashdot', 'dotted']
         self.color_combo1 = QComboBox()
         self.color_combo1.addItems(colors)
-        self.color_combo1.setCurrentText(self.setting["hiv"][0])
+        self.color_combo1.setCurrentText(self.global_setting["hiv"][0])
         self.color_combo1.currentTextChanged.connect(
             lambda: self.update_setting("hiv", (
-                self.color_combo1.currentText(), self.setting["hiv"][1])))
+                self.color_combo1.currentText(),
+                self.current_setting["hiv"][1])))
         self.style_combo1 = QComboBox()
         self.style_combo1.addItems(styles)
-        self.style_combo1.setCurrentText(self.setting["hiv"][1])
+        self.style_combo1.setCurrentText(self.global_setting["hiv"][1])
         self.style_combo1.currentTextChanged.connect(
             lambda: self.update_setting("hiv", (
-                self.setting["hiv"][0], self.style_combo1.currentText())))
+                self.current_setting["hiv"][0],
+                self.style_combo1.currentText())))
         self.color_combo2 = QComboBox()
         self.color_combo2.addItems(colors)
-        self.color_combo2.setCurrentText(self.setting["sti"][0])
+        self.color_combo2.setCurrentText(self.global_setting["sti"][0])
         self.color_combo2.currentTextChanged.connect(
             lambda: self.update_setting("sti", (
-                self.color_combo2.currentText(), self.setting["sti"][1])))
+                self.color_combo2.currentText(),
+                self.current_setting["sti"][1])))
         self.style_combo2 = QComboBox()
         self.style_combo2.addItems(styles)
-        self.style_combo2.setCurrentText(self.setting["sti"][1])
+        self.style_combo2.setCurrentText(self.global_setting["sti"][1])
         self.style_combo2.currentTextChanged.connect(
             lambda: self.update_setting("sti", (
-                self.setting["sti"][0], self.style_combo2.currentText())))
+                self.current_setting["sti"][0],
+                self.style_combo2.currentText())))
         self.color_combo3 = QComboBox()
         self.color_combo3.addItems(colors)
-        self.color_combo3.setCurrentText(self.setting["extshift"][0])
+        self.color_combo3.setCurrentText(self.global_setting["extshift"][0])
         self.color_combo3.currentTextChanged.connect(
             lambda: self.update_setting("extshift", (
-                self.color_combo1.currentText(), self.setting["extshift"][1])))
+                self.color_combo1.currentText(),
+                self.current_setting["extshift"][1])))
         self.style_combo3 = QComboBox()
         self.style_combo3.addItems(styles)
-        self.style_combo3.setCurrentText(self.setting["extshift"][1])
+        self.style_combo3.setCurrentText(self.global_setting["extshift"][1])
         self.style_combo3.currentTextChanged.connect(
             lambda: self.update_setting("extshift", (
-                self.setting["extshift"][0], self.style_combo3.currentText())))
+                self.current_setting["extshift"][0],
+                self.style_combo3.currentText())))
 
         # Создаем vbox для вертикальной компоновки
         vbox_tab1 = QVBoxLayout()
@@ -176,27 +183,27 @@ class MainWindow(QMainWindow):
         l_label.setFixedSize(100, 20)
         self.u1_edit = QLineEdit()
         self.u1_edit.setValidator(QRegExpValidator(QRegExp(r"^[0-9\.]*$")))
-        self.u1_edit.setText(self.setting["u1"])
+        self.u1_edit.setText(self.global_setting["u1"])
         self.u1_edit.editingFinished.connect(
             lambda: self.check_input_float(self.u1_edit, "u1"))
         self.u2_edit = QLineEdit()
         self.u2_edit.setValidator(QRegExpValidator(QRegExp(r"^[0-9\.]*$")))
-        self.u2_edit.setText(self.setting["u2"])
+        self.u2_edit.setText(self.global_setting["u2"])
         self.u2_edit.editingFinished.connect(
             lambda: self.check_input_float(self.u2_edit, "u2"))
         self.tf_edit = QLineEdit()
         self.tf_edit.setValidator(QRegExpValidator(QRegExp(r"^(?!0)\d+$")))
-        self.tf_edit.setText(self.setting["tf"])
+        self.tf_edit.setText(self.global_setting["tf"])
         self.tf_edit.editingFinished.connect(
             lambda: self.update_setting("tf", self.tf_edit.text()))
         self.l_edit = QLineEdit()
         self.l_edit.setValidator(QRegExpValidator(QRegExp(r"^(?!0)\d+$")))
-        self.l_edit.setText(self.setting["l"])
+        self.l_edit.setText(self.global_setting["l"])
         self.l_edit.editingFinished.connect(
             lambda: self.update_setting("l", self.l_edit.text()))
         self.s_edit = QLineEdit()
         self.s_edit.setValidator(QRegExpValidator(QRegExp(r"^(?!0)\d+$")))
-        self.s_edit.setText(self.setting["s"])
+        self.s_edit.setText(self.global_setting["s"])
         self.s_edit.editingFinished.connect(
             lambda: self.update_setting("s", self.s_edit.text()))
 
@@ -281,8 +288,6 @@ class MainWindow(QMainWindow):
 
     # Функция, которая вызывается при нажатии на кнопку "Отобразить графики"
     def plot(self):
-        self.show_plot()
-        '''
         if not self.progressbar:
             self.progresslabel = QLabel()
             self.progressbar = QProgressBar()
@@ -298,10 +303,11 @@ class MainWindow(QMainWindow):
         self.thread.progress_changed.connect(self.on_progress_changed)
         self.thread.finished.connect(self.show_plot)
         self.thread.start()
-        '''
 
     def show_plot(self):
         self.thread = None
+        self.current_setting["first_time"] = False
+        self.save_setting()
         graphs.show_plot(self.hiv_checkbox.isChecked(),
                          self.sti_checkbox.isChecked(),
                          self.extshift_checkbox.isChecked(),
@@ -323,20 +329,20 @@ class MainWindow(QMainWindow):
         pattern = r"^(0|[1-9]\d*)(\.\d*[1-9])?$"
         match = re.match(pattern, text)
         if match:
-            self.setting[original_text_key] = line_edit.text()
-            self.save_setting()
+            self.update_setting(original_text_key, line_edit.text())
         else:
-            line_edit.setText(self.setting[original_text_key])
+            line_edit.setText(self.global_setting[original_text_key])
 
     # Обновление setting
     def update_setting(self, key, value):
-        self.setting[key] = value
-        self.save_setting()
+        self.current_setting[key] = value
+        if key in ["u1", "u2", "tf", "l", "s"]:
+            self.is_requires_compute = True
 
     # Сохранение нового setting
     def save_setting(self):
         with open('setting.gui', 'wb') as p:
-            pickle.dump(self.setting, p)
+            pickle.dump(self.current_setting, p)
 
 
 if __name__ == '__main__':
@@ -349,7 +355,8 @@ if __name__ == '__main__':
                 {"u1": "0.7", "u2": "0.3", "tf": "1000", "s": "5", "l": "20",
                  "hiv": ("green", "dashed"),
                  "sti": ("red", "dotted"),
-                 "extshift": ("blue", "solid")}, p)
+                 "extshift": ("blue", "solid"),
+                 "first_time": True}, p)
 
     with open('setting.gui', 'rb') as f:
         setting = pickle.load(f)
