@@ -1,7 +1,6 @@
 .idea
 __pycache__
-HIV.pickle
-STI.pickle
-EXTSHIFT.pickle
 setting.gui
-uu.pickle
+*.pickle
+*.zip
+*.pdf

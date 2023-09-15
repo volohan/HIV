@@ -42,12 +42,6 @@ def EXTSHIFT(fh, x0, ulb, urb, signal=None):
             print((tz[index_list[i]], tz[index_list[i + 1]]))
         t1 = tz[index_list[i]]
 
-        # Настройки метода оптимизации
-        # rand1exp
-        # currenttobest1exp
-        # randtobest1bin
-        # currenttobest1bin
-        # best2bin
         strategy = 'currenttobest1bin'  # Стратегия выбора родителей
         bounds = [(0, 1)] * 4  # Нижние и верхние границы переменных
         constraints = LinearConstraint(np.ones((1, 2 ** r)), 1, 1)
@@ -58,34 +52,6 @@ def EXTSHIFT(fh, x0, ulb, urb, signal=None):
                                                 sti[1:]], t1, fh, u_space),
                                      constraints=constraints,
                                      x0=p0)
-
-        '''
-        best_x = np.inf
-        p = []
-        zx = [[1, 0, 0, 0],
-              [0, 1, 0, 0],
-              [0, 0, 1, 0],
-              [0, 0, 0, 1],
-              [0.25, 0.25, 0.25, 0.25],
-              [0.4, 0.2, 0.2, 0.2],
-              [0.2, 0.4, 0.2, 0.2],
-              [0.2, 0.2, 0.4, 0.2],
-              [0.2, 0.2, 0.2, 0.4],
-              [0.94, 0.02, 0.02, 0.02],
-              [0.02, 0.94, 0.02, 0.02],
-              [0.02, 0.02, 0.94, 0.02],
-              [0.02, 0.02, 0.02, 0.94],
-              [0.97, 0.01, 0.01, 0.01],
-              [0.01, 0.97, 0.01, 0.01],
-              [0.01, 0.01, 0.97, 0.01],
-              [0.01, 0.01, 0.01, 0.97]]
-        for p0 in zx:
-            res_x = opt_p(p0, xi, [fi[index_list[i]] for fi in
-                                   sti[1:]], t1, fh, u_space)
-            if res_x < best_x:
-                best_x = res_x
-                p = p0
-        '''
 
         p = res.x
         if not signal:

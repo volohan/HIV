@@ -27,8 +27,6 @@ import pickle
 
 from matplotlib import pyplot as plt
 
-from graphs import Graphs
-
 added_HIV = True
 added_STI = True
 added_EXTSHIFT = False
