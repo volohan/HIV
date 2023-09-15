@@ -2,5 +2,3 @@
 __pycache__
 setting.gui
 *.pickle
-*.zip
-*.pdf
